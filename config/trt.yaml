@@ -7,7 +7,7 @@ build:
   calib: # for int8 build mode
     enable: true
     cache: true
-    data: /media/nrsl/NRSL12YEARS/dataset/kitti/data/testing/velodyne
+    data: kitt_data
     max_iters: 500
 
 max_batch_size: 1

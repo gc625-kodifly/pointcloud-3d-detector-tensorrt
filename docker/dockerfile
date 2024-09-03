@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     build-essential \
     curl \
+    libpcl-dev \
     libcurl4-openssl-dev \
     libssl-dev \
     libfreetype6-dev \
@@ -25,6 +26,20 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip
 RUN python3 -m pip install --upgrade pip
 
+RUN pip3 install cmake
+
+# Install ROS Noetic
+
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
+    apt update && \
+    apt install -y ros-noetic-desktop-full && \
+    echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && \
+    apt install -y python3-rosdep && \
+    rosdep init && \
+    rosdep update
+
+
 # Install PyTorch, TorchVision, and Torchaudio with CUDA 11.0 support
 RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 \
     -f https://download.pytorch.org/whl/torch_stable.html
@@ -37,14 +52,39 @@ COPY ./tensorrt.tar.gz /tmp
 RUN tar -xvzf /tmp/tensorrt.tar.gz -C /tmp && \
     echo "export LD_LIBRARY_PATH=:/tmp/TensorRT-8.4.1.5/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
     
-# Set the working directory
-WORKDIR /workspace
+ARG USERNAME=admin
 
-# Expose port 8888 for Jupyter (if needed)
-EXPOSE 8888
+# Create a non-root user and set up the environment
+RUN useradd ${USERNAME} --create-home --shell /bin/bash  && \
+    echo ${USERNAME}':newpassword' | chpasswd && \
+    chown -R ${USERNAME}:${USERNAME} /home/${USERNAME} && \
+    chmod 777 /home/${USERNAME}
+
+# Update 'admin' user
+RUN echo ${USERNAME} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME} \
+    && adduser ${USERNAME} video && adduser ${USERNAME} plugdev && adduser ${USERNAME} sudo
+
+
+# SSH stuff for git
+RUN mkdir -p /home/${USERNAME}/.ssh && chmod 777 /home/${USERNAME}/.ssh
+
+RUN --mount=type=secret,target=/run/secrets/host_ssh_key\
+    cp /run/secrets/host_ssh_key /home/${USERNAME}/.ssh/id_rsa
+
+RUN chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh/id_rsa
+RUN ssh-keyscan github.com >> /home/${USERNAME}/.ssh/known_hosts
+
+# switch to the new user
+
+SHELL ["/bin/bash", "-c"]
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
+
 
 # Reset non-interactive environment variable
-ENV DEBIAN_FRONTEND=
+ENV TENSORRT_DIR=/tmp/TensorRT-8.4.1.5
+ENV CUDNN_DIR=/usr/lib/x86_64-linux-gnu
 
 # Command to run on container start
 CMD ["/bin/bash"]
