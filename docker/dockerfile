@@ -1,0 +1,50 @@
+# Use NVIDIA CUDA 11.0.3 with cuDNN 8 runtime base image
+FROM nvcr.io/nvidia/cuda:11.0.3-cudnn8-devel-ubuntu20.04
+
+# Set non-interactive installation mode
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    wget \
+    build-essential \
+    curl \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libzmq3-dev \
+    pkg-config \
+    python3-pip \
+    python3-dev \
+    git \
+    vim && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip
+
+# Install PyTorch, TorchVision, and Torchaudio with CUDA 11.0 support
+RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 \
+    -f https://download.pytorch.org/whl/torch_stable.html
+
+# Install TensorRT, check the compatibility and version
+
+COPY ./tensorrt.tar.gz /tmp
+
+# untar and add dir to LD_LIBRARY_PATH
+RUN tar -xvzf /tmp/tensorrt.tar.gz -C /tmp && \
+    echo "export LD_LIBRARY_PATH=:/tmp/TensorRT-8.4.1.5/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
+    
+# Set the working directory
+WORKDIR /workspace
+
+# Expose port 8888 for Jupyter (if needed)
+EXPOSE 8888
+
+# Reset non-interactive environment variable
+ENV DEBIAN_FRONTEND=
+
+# Command to run on container start
+CMD ["/bin/bash"]

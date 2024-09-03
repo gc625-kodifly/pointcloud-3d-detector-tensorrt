@@ -1,14 +1,17 @@
 ![](doc/demo.gif)
 # Introduction
 
-In this repo, we provide a ros wrapper for lightweight yet powerful 3D object detection with TensorRT inference backend for real-time robotic applications. 
+In this repo, we provide a ros wrapper for lightweight yet powerful 3D object detection with TensorRT inference backend for real-time robotic applications.
 1. It is effective and efficient, achieving **5 ms** runtime and **85%** 3D Car mAP@R40.
 2. we chose **IA-SSD** as baseline since its high efficiency. Further, **HAVSampler** and **GridBallQuery** are adopted to gain 1000x faster than **FPS** and original **BallQuery**, respectively.
 3. we implement **TensorRT plugins** for NMS postprocessing and some common-to-use operators of point-based point cloud detector, e.g., sampling, grouping, gather.
 
 # News
-1. \[2022/04/14\]: This repository implements [GridBallQuery](doc/gridballquery.md) with a computational complexity of $\mathcal{O}(NK^3)$, instead of $\mathcal{O}(NM)$ of BallQuery. 
-1. \[2022/04/08\]: Support INT8 quantization and [Profiler](doc/profile.md).
+1. \[2022/05/01\]: We offer a faster version HAVSampler and reconstruct all plugins with our auto-declaration header.
+   updates can be found in [branch `devel`](https://github.com/OuyangJunyuan/pointcloud-3d-detector-tensorrt/tree/devel).
+2. \[2022/04/17\]: We release the [PyTorch models](#ONNX) and ONNX export script. You can retrain or do some modified based our models.
+3. \[2022/04/14\]: This repository implements [GridBallQuery](doc/gridballquery.md) with a computational complexity of $\mathcal{O}(NK^3)$, instead of $\mathcal{O}(NM)$ of BallQuery.
+4. \[2022/04/08\]: Support INT8 quantization and [Profiler](doc/profile.md).
 # Build
 we test on the platform:
 
@@ -54,7 +57,7 @@ we also profile the model in different precisions, read [this](doc/profile.md) f
 
 
 # How to use
-It receives msgs from sensor_msgs::PointCloud2 `/points` and publishes visualization_msgs::MarkerArray `/objects`. 
+It receives msgs from sensor_msgs::PointCloud2 `/points` and publishes visualization_msgs::MarkerArray `/objects`.
 ```shell
 ./devel/lib/point_detection/point_detector
 ```
@@ -62,13 +65,28 @@ we offer another utils script to publish point clouds from `.bin` files.
 ```shell
 python src/pcvt.py -s bin -d topic -t /points -p /home/nrsl/Downloads/velodyne_points/data 
 ```
+# Plugins
+Your can easily implement a plugin just use our [AUTO-CODES-GENERATION](plugins/README.md) header.
+
+# ONNX
+We export the model by [RobDet3D](https://github.com/OuyangJunyuan/RobDet3D).
+Please refer its manual to export you own onnx model.
+Feel free to let me know if you have any questions.
 
 # Limitation
-1. ~~When build engine with INT8 mode, it throws `cuda configuration error` during calibration. Therefore, only FP32 and FP16 mode can be used.~~ 
-
-# Others
-Feel free to contact us if the source codes of pytorch models are required.
+1. ~~When build engine with INT8 mode, it throws `cuda configuration error` during calibration. Therefore, only FP32 and FP16 mode can be used.~~
 
 # TODO
 1. consider use cuda graph to reduce the latency introduced by launching too much kernel.
 2. use dynamic parallelism to avoid cpu-based loop in HAVSampling.
+
+# Citation
+If you find this project useful in your research, please consider citing:
+```bibtex
+@article{ouyang2023hierarchical,
+  title={Hierarchical Adaptive Voxel-guided Sampling for Real-time Applications in Large-scale Point Clouds},
+  author={Ouyang, Junyuan and Liu, Xiao and Chen, Haoyao},
+  journal={arXiv preprint arXiv:2305.14306},
+  year={2023}
+}
+```

@@ -31,7 +31,8 @@ set_ifndef_from_env(CUDNN_DIR)
 
 find_package(CUDA ${CUDA_VERSION} REQUIRED)
 find_library(CUDART_LIB cudart_static HINTS ${CUDA_TOOLKIT_ROOT_DIR} PATH_SUFFIXES lib lib/x64 lib64)
-find_library(CUBLAS_LIB cublas REQUIRED PATH_SUFFIXES lib64 lib lib/x64 lib/stubs)
+# find_library(CUBLAS_LIB cublas REQUIRED PATH_SUFFIXES lib64 lib lib/x64 lib/stubs)
+find_library(CUBLAS_LIB cublas REQUIRED HINTS ${CUDA_TOOLKIT_ROOT_DIR} PATH_SUFFIXES lib64 lib lib/x64 lib/stubs)
 find_library(CUDNN_LIB cudnn REQUIRED
     HINTS ${CUDNN_DIR} $ENV{CUDNN_DIR}
     PATH_SUFFIXES lib64 lib/x64 lib)
