@@ -1,0 +1,25 @@
+<launch>
+
+    <arg name="node_start_delay" default="5.0" />  
+	<arg name="rviz" default="true" />
+
+	<node pkg="point_detection" type="point_detector" name="point_detector" output="screen" >
+		<!-- <rosparam file="$(find fast_livo)/config/camera_pinhole_resize_kodifly.yaml" /> -->
+	</node>
+
+	<group if="$(arg rviz)">
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find point_detection)/rviz_config/trt.rviz -f //map"  />
+	</group>
+
+
+    <node name="pointcloud_converter" pkg="point_detection" type="pcvt.py" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+        <!-- Arguments passed to the node -->
+        <param name="source" value="bin"/>
+        <param name="dest" value="topic"/>
+        <param name="topic" value="/points"/>
+        <param name="path" value="$(find point_detection)/kitti_data"/>
+    </node>
+
+
+
+</launch>
