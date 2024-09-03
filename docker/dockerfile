@@ -46,10 +46,10 @@ RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 \
 
 # Install TensorRT, check the compatibility and version
 
-COPY ./tensorrt.tar.gz /tmp
+COPY ./TensorRT-8.4.1.5.tar.gz /tmp
 
 # untar and add dir to LD_LIBRARY_PATH
-RUN tar -xvzf /tmp/tensorrt.tar.gz -C /tmp && \
+RUN tar -xvzf /tmp/TensorRT-8.4.1.5.tar.gz -C /tmp && \
     echo "export LD_LIBRARY_PATH=:/tmp/TensorRT-8.4.1.5/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
     
 ARG USERNAME=admin
@@ -79,7 +79,7 @@ RUN ssh-keyscan github.com >> /home/${USERNAME}/.ssh/known_hosts
 
 SHELL ["/bin/bash", "-c"]
 USER ${USERNAME}
-WORKDIR /home/${USERNAME}
+WORKDIR /home/${USERNAME}/workspace
 
 
 # Reset non-interactive environment variable
