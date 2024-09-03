@@ -17,5 +17,4 @@ docker run -it --rm \
     --name "$CONTAINER_NAME" \
     --gpus all \
     $@ \
-    docker.io/gc625kodifly/iassd-trt:x86\
-    /bin/bash
+    docker.io/gc625kodifly/iassd-trt:x86
