@@ -1,11 +1,12 @@
+#!/usr/bin/python3
 import numpy as np
 from pathlib import Path
-import argparse
-
+import rospy
+from sensor_msgs.msg import PointCloud2, PointField
+import ros_numpy as rnp
 
 def numpy2pcd(pts_np):
-    pcd_str = ''
-    pcd_str += '# .PCD v0.7 - Point Cloud Data file format\n'
+    pcd_str = '# .PCD v0.7 - Point Cloud Data file format\n'
     pcd_str += 'VERSION 0.7\n'
     pcd_str += 'FIELDS x y z intensity\nSIZE 4 4 4 4\nTYPE F F F F\nCOUNT 1 1 1 1\n'
     pcd_str += 'WIDTH %d\nHEIGHT 1\n' % pts_np.shape[0]
@@ -15,7 +16,6 @@ def numpy2pcd(pts_np):
     for pt_ in pts_np:
         pcd_str += '%f %f %f %f\n' % (pt_[0], pt_[1], pt_[2], pt_[3])
     return pcd_str
-
 
 def topic2numpy(msg):
     num = msg.width * msg.height
@@ -36,7 +36,7 @@ def topic2numpy(msg):
 def numpy2msg(pts_np):
     msg = PointCloud2()
     msg.header.stamp = rospy.Time().now()
-    msg.header.frame_id = args.frame_id
+    msg.header.frame_id = frame_id
 
     msg.height = 1
     msg.width = len(pts_np)
@@ -126,7 +126,7 @@ def bin2topic(file_path, p):
     if dt > 0:
         time.sleep(dt)
     p.publish(numpy2msg(pts_))
-    print("bin2topic pub to %s" % args.topic)
+    print("bin2topic pub to %s" % topic)
     prev = time.time()
 
 
@@ -137,56 +137,43 @@ def pcd2topic(file_path, p):
 
     pts_ = pcd2numpy(lines)
     p.publish(numpy2msg(pts_))
-    print("pcd2topic pub to %s" % args.topic)
+    print("pcd2topic pub to %s" % topic)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="ros msg to bin")
-    parser.add_argument('-s', '--source', required=True, choices=('pcd', 'bin', 'topic'), type=str,
-                        help='data source type')
-    parser.add_argument('-d', '--dest', required=True, choices=('pcd', 'bin', 'topic'), type=str,
-                        help='data target type')
-    parser.add_argument('-p', '--path', default='./', type=str,
-                        help='data path')
-    parser.add_argument('-t', '--topic', default='/points', type=str,
-                        help='ros topic')
-    parser.add_argument('-o', '--output', default='output', type=str,
-                        help='output directory')
-    parser.add_argument('--frame_id', default='/map', type=str,
-                        help='frame id of Point cloud when cvt to ros topic')
-    args = parser.parse_args()
+    rospy.init_node('msg2bin_node', anonymous=True)
 
-    assert args.source != args.dest, "no need to convert"
+    source = rospy.get_param('~source', 'pcd')  # Default to 'pcd' if not set
+    dest = rospy.get_param('~dest', 'bin')  # Default to 'bin' if not set
+    path = rospy.get_param('~path', './')  # Path to data
+    topic = rospy.get_param('~topic', '/points')  # ROS topic
+    output = rospy.get_param('~output', 'output')  # Output directory
+    frame_id = rospy.get_param('~frame_id', '/map')  # Frame ID for PointCloud
 
-    path, out_path = Path(args.path), Path(args.output)
-    assert path.exists()
+    assert source != dest, "Source and destination cannot be the same."
+
+    path, out_path = Path(path), Path(output)
+    assert path.exists(), "Source path does not exist."
     if not out_path.exists():
         out_path.mkdir(parents=True)
 
-    # 读取所有文件
-    cvt = globals()[args.source + '2' + args.dest]
+    cvt = globals()[source + '2' + dest]
     source_file = []
-    if args.source != "topic":
+
+    if source != "topic":
         for file in path.iterdir():
-            if file.suffix == '.' + args.source:
+            if file.suffix == '.' + source:
                 source_file.append(file)
         source_file.sort()
-
-        print("%d %s files totally" % (len(source_file), args.source))
-
-    if args.source == "topic" or args.dest == "topic":
-        import ros_numpy as rnp
-        import rospy
-        from sensor_msgs.msg import PointCloud2
-        from sensor_msgs.msg import PointField
-
-        rospy.init_node('msg2bin_node', anonymous=True)
+        print("%d %s files totally" % (len(source_file), source))
+    
+    if source == "topic" or dest == "topic":
         cnt = 0
-        if args.source == 'topic':
-            rospy.Subscriber(args.topic, PointCloud2, cvt, out_path)
+        if source == 'topic':
+            rospy.Subscriber(topic, PointCloud2, cvt, out_path)
             rospy.spin()
         else:
-            pub = rospy.Publisher(args.topic, PointCloud2, queue_size=1)
+            pub = rospy.Publisher(topic, PointCloud2, queue_size=1)
             for file in source_file:
                 cvt(file, pub)
                 rospy.sleep(0.05)
